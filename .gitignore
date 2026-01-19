@@ -1,0 +1,9 @@
+.envrc
+.direnv/
+.DS_Store
+result
+result-*
+/tmp/
+*.aar
+*.pkg
+*.app
