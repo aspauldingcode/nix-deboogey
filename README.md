@@ -2,31 +2,32 @@
 
 A Nix flake providing **Deboogey** (Ammonia + Nix) in macOS Tart VMs for ARM-based Macs.
 
-## Quick Start
+## One Command, Everything Ready
 
 ```bash
-# Run the Tahoe (macOS 26.0) VM with all features
 nix run github:aspauldingcode/nix-deboogey#tahoe
 ```
 
-This single command will:
-- Clone the prebuilt VM from GHCR (skips if already exists)
-- Start the VM with your home directory shared
-- Display connection info (SSH, SFTP)
+That's it! This single command:
+
+- 📦 **Smart clones** the prebuilt VM (skips if already exists)
+- 🚀 **Starts the VM** with your home directory shared
+- 📁 **Sets up shared folders** at `/Volumes/My Shared Files`
+- 📋 **Displays connection info** (IP, SSH, SFTP commands)
+
+Just run it and you're ready to develop!
 
 ## Available VMs
 
 | Command | macOS Version |
 |---------|---------------|
-| `nix run .#tahoe` | macOS 26.0 (Tahoe) |
-| `nix run .#sequoia` | macOS 15.0 (Sequoia) |
-| `nix run .#sonoma` | macOS 14.0 (Sonoma) |
-| `nix run .#ventura` | macOS 13.0 (Ventura) |
-| `nix run .#monterey` | macOS 12.0 (Monterey) |
+| `nix run github:aspauldingcode/nix-deboogey#tahoe` | macOS 26.0 (Tahoe) |
+| `nix run github:aspauldingcode/nix-deboogey#sequoia` | macOS 15.0 (Sequoia) |
+| `nix run github:aspauldingcode/nix-deboogey#sonoma` | macOS 14.0 (Sonoma) |
+| `nix run github:aspauldingcode/nix-deboogey#ventura` | macOS 13.0 (Ventura) |
+| `nix run github:aspauldingcode/nix-deboogey#monterey` | macOS 12.0 (Monterey) |
 
 ## Use as a Flake Input
-
-Add to your `flake.nix`:
 
 ```nix
 {
@@ -36,52 +37,49 @@ Add to your `flake.nix`:
   };
 
   outputs = { self, nixpkgs, nix-deboogey }: {
-    # Access VM configs
-    vmConfigs = nix-deboogey.lib.aarch64-darwin.vmConfigs;
+    # Re-export the unified runner
+    packages.aarch64-darwin.tahoe = nix-deboogey.packages.aarch64-darwin.tahoe;
     
-    # Access packages
-    packages.aarch64-darwin = {
-      tahoe = nix-deboogey.packages.aarch64-darwin.tahoe;
-    };
+    # Or access VM configs for custom setups
+    vmConfigs = nix-deboogey.lib.aarch64-darwin.vmConfigs;
   };
 }
 ```
 
-## Manual Commands
-
+Then your users can simply run:
 ```bash
-# Clone a specific VM
-nix run .#clone-tahoe
-
-# Run with shared folder
-nix run .#run-tahoe -- --dir=~
-
-# SSH into running VM
-nix run .#ssh-tahoe
-
-# SFTP into running VM
-nix run .#sftp-vm -- deboogey-tahoe
+nix run .#tahoe
 ```
+
+## What's Included
+
+Each prebuilt VM comes with:
+- **Nix** package manager
+- **Ammonia** macOS tweak environment  
+- **Deboogey** development tools
+
+## Requirements
+
+- Apple Silicon Mac (aarch64-darwin)
+- Nix with flakes enabled
 
 ## Maintainer Commands
 
-Create and push prebuilt VMs to GHCR:
+<details>
+<summary>Creating and pushing prebuilt VMs</summary>
 
 ```bash
 # Enter dev shell (sets up credentials)
 nix develop
 
-# Create and push a prebuilt
+# Create and push a prebuilt (pushes by default)
 nix run .#create-prebuilt-tahoe
 
 # Create without pushing
 nix run .#create-prebuilt-tahoe -- --no-push
 ```
 
-## Requirements
-
-- Apple Silicon Mac (aarch64-darwin)
-- Nix with flakes enabled
+</details>
 
 ## License
 
