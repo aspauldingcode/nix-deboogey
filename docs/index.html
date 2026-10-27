@@ -100,83 +100,59 @@
       <ol>
         <li>Packer clones a Cirrus Labs <code>macos-&lt;name&gt;-vanilla</code> image.</li>
         <li>Inside that guest it checks the macOS major version, disables SIP, installs Deboogey, then installs a tweak loader: Ammonia on Monterey through Sequoia, Plugin Playground on Tahoe and Golden Gate.</li>
-        <li>The finished VM is pushed to GitHub Packages as <code>ghcr.io/aspauldingcode/nix-deboogey/macos-&lt;name&gt;-deboogey:latest</code>.</li>
-        <li>You either <code>nix run</code> a throwaway clone, or list the name in <code>nix-deboogey.tart.vms</code> so nix-darwin pulls and clones it on <code>darwin-rebuild switch</code>.</li>
+        <li>CI pushes that VM to GitHub Packages as <code>ghcr.io/aspauldingcode/nix-deboogey/macos-&lt;name&gt;-deboogey:latest</code>.</li>
+        <li>You set <code>nix-deboogey.vms.&lt;name&gt;.enable = true</code>. <code>darwin-rebuild switch</code> installs Tart and clones that image.</li>
       </ol>
       <p class="note">SIP and the <code>-arm64e_preview_abi</code> boot arg are applied in the guest. The host Mac is left alone. The guest login is <code>admin</code> / <code>admin</code>. These VMs run on Apple Silicon.</p>
     </section>
 
-    <section id="use">
-      <h2>Use it</h2>
-      <p>Each command pulls the image, clones a temporary VM, and deletes that clone on exit. Add <code>--gui</code> for a window. Add <code>--no-home</code> to skip sharing your home directory over VirtioFS.</p>
-      <pre><code>nix run github:aspauldingcode/nix-deboogey#tahoe -- --gui
-nix run github:aspauldingcode/nix-deboogey#ventura
-nix run github:aspauldingcode/nix-deboogey#sequoia
-nix run github:aspauldingcode/nix-deboogey            # Sequoia</code></pre>
-      <p>The app names are <code>golden-gate</code>, <code>tahoe</code>, <code>sequoia</code>, <code>sonoma</code>, <code>ventura</code>, and <code>monterey</code>. <code>ephemeral-tahoe</code> is the same app as <code>tahoe</code>.</p>
-      <p>Tart has to be on the host. The nix-darwin module installs it from the Cirrus Homebrew tap. For a one-off run, install it yourself:</p>
-      <pre><code>brew install cirruslabs/cli/tart</code></pre>
-    </section>
-
     <section id="declare">
       <h2>Declare it</h2>
-      <p>Add the flake and the module. A string is enough. The image name drops a leading <code>macos-</code>, and the local Tart VM is named <code>&lt;name&gt;-deboogey</code>.</p>
+      <p>Add the input and the module. <code>enable = true</code> is the install switch. <code>darwin-rebuild switch</code> installs Tart, pulls the CI image, and clones a local VM named <code>&lt;name&gt;-deboogey</code>.</p>
       <pre><code>{
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nix-darwin.url = "github:LnL7/nix-darwin";
-    nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
-    nix-deboogey.url = "github:aspauldingcode/nix-deboogey";
-  };
+  inputs.nix-deboogey.url = "github:aspauldingcode/nix-deboogey";
 
-  outputs = { self, nixpkgs, nix-darwin, nix-deboogey, ... }: {
-    darwinConfigurations."my-mac" = nix-darwin.lib.darwinSystem {
+  outputs = { self, nix-darwin, nix-deboogey, ... }: {
+    darwinConfigurations.mac = nix-darwin.lib.darwinSystem {
       system = "aarch64-darwin";
       modules = [
         nix-deboogey.darwinModules.default
         {
-          nix-deboogey.tart.vms = [
-            "sequoia"
-            "tahoe"
-            {
-              name = "ventura";
-              cpu = 6;
-              memory = 12;   # gigabytes
-              diskSize = 80; # gigabytes
-              headless = true;
-              autoStart = true;
-            }
-          ];
+          nix-deboogey.vms.tahoe.enable = true;
+          nix-deboogey.vms.ventura = {
+            enable = true;
+            cpu = 6;
+            memory = 12;    # GiB
+            diskSize = 80;  # GiB
+            autoStart = true;
+          };
         }
       ];
     };
   };
 }</code></pre>
-      <p><code>darwin-rebuild switch</code> pulls the image when <code>autoPull</code> is true (the default), clones it if the local name is missing, and sets CPU, memory, and disk. <code>autoStart</code> defaults to false, so the VM stays stopped until you run it:</p>
-      <pre><code>tart run sequoia-deboogey
-tart-ssh sequoia-deboogey
-tart-ssh sequoia-deboogey uname -a</code></pre>
-      <p><code>tart-ssh</code> and <code>tart-scp</code> are shell functions from the module. They use the guest <code>admin</code> password. If the declared name is <code>macos-sequoia</code>, the local VM is <code>macos-sequoia-deboogey</code> and the image is still the Sequoia prebuilt.</p>
-
-      <h3>What you can set</h3>
+      <p>The same option exists for <code>golden-gate</code>, <code>sequoia</code>, <code>sonoma</code>, and <code>monterey</code>. <code>autoStart</code> defaults to false, so the VM is installed and stopped until you run it. Guest login is <code>admin</code> / <code>admin</code>.</p>
+      <pre><code>tart run tahoe-deboogey
+tart-ssh tahoe-deboogey</code></pre>
       <table>
         <thead>
           <tr><th>Option</th><th>Default</th><th>Meaning</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>tart.enable</code></td><td><code>true</code></td><td>Install Tart and manage the VM list.</td></tr>
-          <tr><td><code>tart.autoPull</code></td><td><code>true</code></td><td>Pull each image during activation.</td></tr>
-          <tr><td><code>tart.defaults.cpu</code></td><td><code>4</code></td><td>Default CPU count.</td></tr>
-          <tr><td><code>tart.defaults.memory</code></td><td><code>8</code></td><td>Default memory in gigabytes.</td></tr>
-          <tr><td><code>tart.defaults.diskSize</code></td><td><code>50</code></td><td>Default disk in gigabytes. Activation only grows a disk.</td></tr>
-          <tr><td><code>vms.*.source</code></td><td>the GHCR prebuilt</td><td>OCI image to clone.</td></tr>
-          <tr><td><code>vms.*.net</code></td><td><code>shared</code></td><td><code>shared</code>, <code>bridged</code>, <code>host-only</code>, or <code>softnet</code>.</td></tr>
-          <tr><td><code>vms.*.enableHomeShare</code></td><td><code>true</code></td><td>Share the host home directory as <code>home</code>.</td></tr>
-          <tr><td><code>vms.*.headless</code></td><td><code>false</code></td><td>Pass <code>--no-graphics</code> when the launchd agent starts the VM.</td></tr>
-          <tr><td><code>vms.*.autoStart</code></td><td><code>false</code></td><td>Start the VM at login via <code>launchd</code>.</td></tr>
-          <tr><td><code>orchard.enable</code></td><td><code>false</code></td><td>Also run an Orchard user agent.</td></tr>
+          <tr><td><code>vms.&lt;name&gt;.enable</code></td><td><code>false</code></td><td>Install this prebuilt on <code>darwin-rebuild switch</code>.</td></tr>
+          <tr><td><code>vms.&lt;name&gt;.cpu</code></td><td><code>4</code></td><td>CPU count.</td></tr>
+          <tr><td><code>vms.&lt;name&gt;.memory</code></td><td><code>8</code></td><td>Memory in GiB.</td></tr>
+          <tr><td><code>vms.&lt;name&gt;.diskSize</code></td><td><code>50</code></td><td>Disk in GiB. A smaller value leaves the disk as it is.</td></tr>
+          <tr><td><code>vms.&lt;name&gt;.autoStart</code></td><td><code>false</code></td><td>Start the VM at login and share your home directory.</td></tr>
         </tbody>
       </table>
+    </section>
+
+    <section id="use">
+      <h2>Run one without nix-darwin</h2>
+      <p><code>nix run</code> pulls the same CI image, clones a temporary VM, and deletes it on exit. <code>--gui</code> shows a window. <code>--no-home</code> skips the home share. Tart must already be installed for this path; the module installs it for you.</p>
+      <pre><code>nix run github:aspauldingcode/nix-deboogey#tahoe -- --gui
+nix run github:aspauldingcode/nix-deboogey#ventura</code></pre>
     </section>
 
     <section id="prebuilts">
@@ -195,7 +171,7 @@ tart-ssh sequoia-deboogey uname -a</code></pre>
           <tr><td><code>#monterey</code></td><td>12 Monterey</td><td>Ammonia</td><td><code>ghcr.io/aspauldingcode/nix-deboogey/macos-monterey-deboogey:latest</code></td></tr>
         </tbody>
       </table>
-      <p class="note">An Apple Silicon Mac builds these with <code>./scripts/create-prebuilt.sh &lt;name&gt; --push</code>. GitHub-hosted runners cannot boot Tart, so the publish workflow is manual and expects a self-hosted Mac.</p>
+      <p class="note">These images are published by CI. <code>enable = true</code> only pulls and installs one.</p>
     </section>
 
     <footer>

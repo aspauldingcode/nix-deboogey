@@ -41,7 +41,7 @@ jobs:
           support="$(sysctl -n kern.hv_support 2>/dev/null || echo 0)"
           if [ "$support" != "1" ]; then
             echo "This runner cannot start Tart (kern.hv_support=${support})."
-            echo "Use a self-hosted Apple Silicon Mac, or run ./scripts/create-prebuilt.sh <version> --push locally."
+            echo "GitHub-hosted macOS runners cannot boot a macOS guest. This job needs a self-hosted Apple Silicon runner."
             exit 1
           fi
           brew install cirruslabs/cli/tart hashicorp/tap/packer

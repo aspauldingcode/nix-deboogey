@@ -24,6 +24,4 @@ jobs:
         run: |
           nix build --no-link \
             .#default \
-            .#golden-gate .#tahoe .#sequoia .#sonoma .#ventura .#monterey \
-            .#ephemeral-golden-gate .#ephemeral-tahoe .#ephemeral-sequoia \
-            .#ephemeral-sonoma .#ephemeral-ventura .#ephemeral-monterey
+            .#golden-gate .#tahoe .#sequoia .#sonoma .#ventura .#monterey

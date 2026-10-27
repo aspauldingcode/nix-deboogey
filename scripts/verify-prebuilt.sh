@@ -11,7 +11,7 @@ echo "==========================================================================
 echo " VERIFICATION SUITE: DEBOOGEY TART PREBUILTS"
 echo "================================================================================"
 
-VERSIONS=("golden-gate" "tahoe" "sequoia" "sonoma" "ventura" "monterey")
+VERSIONS=($(grep -oE '"[a-z0-9-]+"' "$ROOT/versions.nix" | tr -d '"'))
 
 # 1. Base vanilla images on GHCR
 echo "--> [1/6] Verifying vanilla base images on GHCR..."
@@ -57,16 +57,17 @@ git ls-remote --exit-code https://github.com/CoreBedtime/playground.git HEAD >/d
 
 # 5. One image name for nix run, the darwin module, and the publisher
 echo "--> [5/6] Checking the GHCR image contract..."
-grep -q 'ghcr.io/aspauldingcode/nix-deboogey/macos-${clean}-deboogey:latest' "$ROOT/apps/ephemeral.nix" \
+grep -q 'ghcr.io/aspauldingcode/nix-deboogey/macos-${version}-deboogey:latest' "$ROOT/apps/ephemeral.nix" \
   && pass "ephemeral runner image" || fail "ephemeral runner image drifted"
-grep -q 'ghcr.io/aspauldingcode/nix-deboogey/macos-${lib.removePrefix "macos-" vm.name}-deboogey:latest' "$ROOT/modules/default.nix" \
+grep -q 'ghcr.io/aspauldingcode/nix-deboogey/macos-${name}-deboogey:latest' "$ROOT/modules/default.nix" \
   && pass "darwin module image" || fail "darwin module image drifted"
 grep -q 'ghcr.io/aspauldingcode/nix-deboogey/macos-${VERSION}-deboogey' "$ROOT/scripts/create-prebuilt.sh" \
   && pass "publisher image" || fail "publisher image drifted"
 grep -q 'create-prebuilt.sh' "$ROOT/.github/workflows/build-tart-vms.yml" \
   && pass "publish workflow calls create-prebuilt.sh" || fail "publish workflow does not call create-prebuilt.sh"
 for ver in "${VERSIONS[@]}"; do
-  grep -q "\"${ver}\"" "$ROOT/flake.nix" && pass "flake app ${ver}" || fail "flake missing ${ver}"
+  grep -q "$ver" "$ROOT/.github/workflows/build-tart-vms.yml" && pass "publish matrix ${ver}" || fail "publish matrix missing ${ver}"
+  grep -q "$ver" "$ROOT/scripts/create-prebuilt.sh" && pass "publisher knows ${ver}" || fail "publisher missing ${ver}"
 done
 
 # 6. Local VM check if specified

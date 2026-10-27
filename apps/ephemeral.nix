@@ -2,13 +2,12 @@
 
 version:
 let
-  clean = builtins.replaceStrings [ "macos-" ] [ "" ] version;
-  image = "ghcr.io/aspauldingcode/nix-deboogey/macos-${clean}-deboogey:latest";
+  image = "ghcr.io/aspauldingcode/nix-deboogey/macos-${version}-deboogey:latest";
 
   script = pkgs.writeShellScriptBin "ephemeral-${version}" ''
     set -euo pipefail
 
-    # Resolve Tart CLI: PATH -> Homebrew -> Nix store
+    # Tart comes from PATH or Homebrew. The nix-darwin module installs it.
     if command -v tart >/dev/null 2>&1; then
       TART="tart"
     elif [ -x "/opt/homebrew/bin/tart" ]; then
@@ -20,7 +19,7 @@ let
       exit 1
     fi
 
-    VM="ephemeral-${clean}-$$"
+    VM="ephemeral-${version}-$$"
     trap '"$TART" stop "$VM" 2>/dev/null || true; "$TART" delete "$VM" 2>/dev/null || true' EXIT INT TERM
 
     echo "==> Preparing Deboogey VM: $VM (${image})..."

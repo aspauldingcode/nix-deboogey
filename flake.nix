@@ -1,49 +1,29 @@
 {
-  description = "Turnkey Deboogey Tart VMs: declarative nix-darwin module & one-command runners";
+  description = "Deboogey Tart VMs for nix-darwin";
 
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nix-darwin = {
-      url = "github:LnL7/nix-darwin";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
-  outputs = { self, nixpkgs, nix-darwin }:
+  outputs = { self, nixpkgs }:
     let
-      systems = [ "aarch64-darwin" "x86_64-darwin" ];
-      forAllSystems = nixpkgs.lib.genAttrs systems;
-      versions = [ "golden-gate" "tahoe" "sequoia" "sonoma" "ventura" "monterey" ];
-    in {
+      lib = nixpkgs.lib;
+      versions = import ./versions.nix;
+      each = lib.genAttrs [ "aarch64-darwin" "x86_64-darwin" ];
+      runners = system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          mk = import ./apps/ephemeral.nix { inherit pkgs; };
+        in
+        lib.genAttrs versions (name: mk name);
+    in
+    {
       darwinModules.default = import ./modules/default.nix;
-      darwinModules.nix-deboogey = self.darwinModules.default;
 
-      apps = forAllSystems (system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-          runner = import ./apps/ephemeral.nix { inherit pkgs; };
-          appsMap = builtins.listToAttrs (builtins.concatMap (v: [
-            { name = "ephemeral-${v}"; value = (runner v).app; }
-            { name = v;               value = (runner v).app; }
-          ]) versions);
-        in appsMap // { default = (runner "sequoia").app; }
-      );
+      apps = each (system:
+        let built = runners system; in
+        lib.mapAttrs (_: run: run.app) built // { default = built.sequoia.app; });
 
-      packages = forAllSystems (system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-          runner = import ./apps/ephemeral.nix { inherit pkgs; };
-          pkgMap = builtins.listToAttrs (builtins.concatMap (v: [
-            { name = "ephemeral-${v}"; value = (runner v).package; }
-            { name = v;               value = (runner v).package; }
-          ]) versions);
-        in pkgMap // { default = (runner "sequoia").package; }
-      );
-
-      devShells = forAllSystems (system: {
-        default = nixpkgs.legacyPackages.${system}.mkShell {
-          packages = with nixpkgs.legacyPackages.${system}; [ packer git gh curl ];
-        };
-      });
+      packages = each (system:
+        let built = runners system; in
+        lib.mapAttrs (_: run: run.package) built // { default = built.sequoia.package; });
     };
 }
