@@ -1,0 +1,118 @@
+name: Build and Publish Deboogey Tart VMs
+
+on:
+  schedule:
+    # Run every Sunday at midnight UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    inputs:
+      target_version:
+        description: 'Specific macOS version to build (leave empty for full matrix)'
+        required: false
+        type: choice
+        options:
+          - all
+          - golden-gate
+          - tahoe
+          - sequoia
+          - sonoma
+          - ventura
+          - monterey
+        default: all
+      override_pre_26:
+        description: 'Override pre_26 flag (true/false, leave empty to use matrix default)'
+        required: false
+        type: string
+        default: ''
+  push:
+    branches:
+      - main
+    paths:
+      - 'packer/**'
+      - 'scripts/**'
+      - '.github/workflows/build-tart-vms.yml'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-publish:
+    name: Build & Push (${{ matrix.version }})
+    # Apple Silicon GitHub-hosted runner (macOS 14/15) or Tart-capable self-hosted runner
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: golden-gate
+            pre_26: false   # Assumes >= 26 (Plugin Playground); overridden if sw_vers reports < 26
+          - version: tahoe
+            pre_26: false   # macOS 26 (Plugin Playground)
+          - version: sequoia
+            pre_26: true    # macOS 15 (Ammonia)
+          - version: sonoma
+            pre_26: true    # macOS 14 (Ammonia)
+          - version: ventura
+            pre_26: true    # macOS 13 (Ammonia)
+          - version: monterey
+            pre_26: true    # macOS 12 (Ammonia)
+
+    steps:
+      - name: Filter Version for Manual Dispatch
+        if: ${{ github.event.inputs.target_version != '' && github.event.inputs.target_version != 'all' && github.event.inputs.target_version != matrix.version }}
+        run: |
+          echo "Skipping ${{ matrix.version }} (target is ${{ github.event.inputs.target_version }})"
+          exit 0
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Homebrew Tooling (Tart & Packer)
+        run: |
+          echo "Installing Tart CLI and HashiCorp Packer..."
+          brew install cirruslabs/cli/tart hashicorp/tap/packer
+
+      - name: Determine pre_26 Parameter
+        id: flags
+        run: |
+          PRE_26="${{ matrix.pre_26 }}"
+          if [ -n "${{ github.event.inputs.override_pre_26 }}" ]; then
+            PRE_26="${{ github.event.inputs.override_pre_26 }}"
+            echo "Overriding pre_26 to ${PRE_26} via manual dispatch input."
+          fi
+          echo "pre_26=${PRE_26}" >> "$GITHUB_OUTPUT"
+
+      - name: Initialize Packer Tart Plugin
+        run: |
+          packer init packer/templates/macos-${{ matrix.version }}-deboogey.pkr.hcl
+
+      - name: Build Deboogey Tart VM
+        env:
+          PKR_VAR_pre_26: ${{ steps.flags.outputs.pre_26 }}
+        run: |
+          echo "Building macos-${{ matrix.version }}-deboogey with pre_26=${{ steps.flags.outputs.pre_26 }}..."
+          packer build \
+            -var "pre_26=${{ steps.flags.outputs.pre_26 }}" \
+            packer/templates/macos-${{ matrix.version }}-deboogey.pkr.hcl
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | tart login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Push OCI VM Image to GHCR
+        run: |
+          IMAGE_URI="ghcr.io/${{ github.repository_owner }}/macos-${{ matrix.version }}-deboogey"
+          DATE_TAG=$(date +%Y%m%d)
+
+          echo "Pushing ${IMAGE_URI}:latest..."
+          tart push "macos-${{ matrix.version }}-deboogey" "${IMAGE_URI}:latest"
+
+          echo "Pushing dated tag ${IMAGE_URI}:${DATE_TAG}..."
+          tart push "macos-${{ matrix.version }}-deboogey" "${IMAGE_URI}:${DATE_TAG}"
+
+      - name: Cleanup Local VM
+        if: always()
+        run: |
+          echo "Cleaning up local build VM..."
+          tart delete "macos-${{ matrix.version }}-deboogey" 2>/dev/null || true
