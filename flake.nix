@@ -8,10 +8,13 @@
       lib = nixpkgs.lib;
       versions = import ./versions.nix;
       each = lib.genAttrs [ "aarch64-darwin" "x86_64-darwin" ];
+      pkgsFor = system: nixpkgs.legacyPackages.${system};
+      tartFor = system: import ./nix/tart.nix { pkgs = pkgsFor system; };
       runners = system:
         let
-          pkgs = nixpkgs.legacyPackages.${system};
-          mk = import ./apps/ephemeral.nix { inherit pkgs; };
+          pkgs = pkgsFor system;
+          tart = tartFor system;
+          mk = import ./apps/ephemeral.nix { inherit pkgs tart; };
         in
         lib.genAttrs versions (name: mk name);
     in
@@ -23,7 +26,14 @@
         lib.mapAttrs (_: run: run.app) built // { default = built.sequoia.app; });
 
       packages = each (system:
-        let built = runners system; in
-        lib.mapAttrs (_: run: run.package) built // { default = built.sequoia.package; });
+        let
+          built = runners system;
+          pkgs = pkgsFor system;
+        in
+        lib.mapAttrs (_: run: run.package) built // {
+          default = built.sequoia.package;
+          tart = tartFor system;
+          packer = pkgs.packer;
+        });
     };
 }

@@ -65,12 +65,22 @@ grep -q 'ghcr.io/aspauldingcode/nix-deboogey/macos-${VERSION}-deboogey' "$ROOT/s
   && pass "publisher image" || fail "publisher image drifted"
 grep -q 'create-prebuilt.sh' "$ROOT/.github/workflows/build-tart-vms.yml" \
   && pass "publish workflow calls create-prebuilt.sh" || fail "publish workflow does not call create-prebuilt.sh"
-grep -q 'openai/tools/tart' "$ROOT/modules/default.nix" \
-  && pass "module installs openai/tools/tart" || fail "module is not on openai/tools/tart"
+grep -q 'version = "2.41.1"' "$ROOT/nix/tart.nix" \
+  && pass "Tart 2.41.1 is packaged by Nix" || fail "Nix Tart package is not 2.41.1"
+grep -q 'nix/tart.nix' "$ROOT/modules/default.nix" "$ROOT/flake.nix" \
+  && pass "module and flake use the Nix Tart package" || fail "Tart is not wired through Nix"
+grep -q -- '--headless' "$ROOT/apps/ephemeral.nix" && grep -q 'GRAPHICS=""' "$ROOT/apps/ephemeral.nix" \
+  && pass "nix run opens a GUI unless --headless" || fail "GUI default or --headless flag missing"
 grep -q 'version = ">= 1.21.0"' "$ROOT/packer/template.pkr.hcl" \
   && pass "Packer Tart plugin is >= 1.21.0" || fail "Packer Tart plugin constraint is stale"
-! grep -q 'cirruslabs/cli/tart' "$ROOT/modules/default.nix" "$ROOT/apps/ephemeral.nix" "$ROOT/.github/workflows/build-tart-vms.yml" \
-  && pass "no stale cirruslabs/cli/tart pin" || fail "cirruslabs/cli/tart is still referenced"
+grep -q 'nix shell .#tart .#packer' "$ROOT/.github/workflows/build-tart-vms.yml" \
+  && pass "publish workflow takes Tart from Nix" || fail "publish workflow does not use Nix Tart"
+if grep -RInE 'homebrew|brew install|cirruslabs/cli/tart|openai/tools/tart' \
+  "$ROOT/modules" "$ROOT/apps" "$ROOT/flake.nix" "$ROOT/.github/workflows" "$ROOT/nix" >/dev/null; then
+  fail "Homebrew is still referenced"
+else
+  pass "no Homebrew"
+fi
 for ver in "${VERSIONS[@]}"; do
   grep -q "$ver" "$ROOT/.github/workflows/build-tart-vms.yml" && pass "publish matrix ${ver}" || fail "publish matrix missing ${ver}"
   grep -q "$ver" "$ROOT/scripts/create-prebuilt.sh" && pass "publisher knows ${ver}" || fail "publisher missing ${ver}"

@@ -32,6 +32,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: DeterminateSystems/determinate-nix-action@v3.24.1
+
       - name: Build and publish
         if: ${{ inputs.target_version == 'all' || inputs.target_version == matrix.version }}
         env:
@@ -44,5 +46,4 @@ jobs:
             echo "GitHub-hosted macOS runners cannot boot a macOS guest. This job needs a self-hosted Apple Silicon runner."
             exit 1
           fi
-          brew install openai/tools/tart hashicorp/tap/packer
-          ./scripts/create-prebuilt.sh "${{ matrix.version }}" --push
+          nix shell .#tart .#packer -c ./scripts/create-prebuilt.sh "${{ matrix.version }}" --push

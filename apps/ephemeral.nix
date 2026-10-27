@@ -1,23 +1,15 @@
-{ pkgs }:
+{ pkgs, tart }:
 
 version:
 let
   image = "ghcr.io/aspauldingcode/nix-deboogey/macos-${version}-deboogey:latest";
+  tartBin = "${tart}/bin/tart";
 
   script = pkgs.writeShellScriptBin "ephemeral-${version}" ''
     set -euo pipefail
 
-    # Tart comes from PATH or Homebrew. The nix-darwin module installs it.
-    if command -v tart >/dev/null 2>&1; then
-      TART="tart"
-    elif [ -x "/opt/homebrew/bin/tart" ]; then
-      TART="/opt/homebrew/bin/tart"
-    elif [ -x "/usr/local/bin/tart" ]; then
-      TART="/usr/local/bin/tart"
-    else
-      echo "Error: Tart CLI not found. Install via 'brew install openai/tools/tart'." >&2
-      exit 1
-    fi
+    TART="${tartBin}"
+    [ -x "$TART" ] || { echo "nix-deboogey: bundled Tart is missing" >&2; exit 1; }
 
     VM="ephemeral-${version}-$$"
     trap '"$TART" stop "$VM" 2>/dev/null || true; "$TART" delete "$VM" 2>/dev/null || true' EXIT INT TERM
@@ -27,11 +19,13 @@ let
     "$TART" clone "${image}" "$VM"
     "$TART" set "$VM" --cpu 4 --memory 8192 --disk-size 50 2>/dev/null || true
 
-    GRAPHICS="--no-graphics"
+    # A window is the default. --headless is the opt-out.
+    GRAPHICS=""
     SHARE_HOME="--dir=home:$HOME"
     ARGS=()
     for arg in "$@"; do
-      if [ "$arg" = "--gui" ]; then GRAPHICS="";
+      if [ "$arg" = "--headless" ]; then GRAPHICS="--no-graphics";
+      elif [ "$arg" = "--gui" ]; then GRAPHICS="";
       elif [ "$arg" = "--no-home" ]; then SHARE_HOME="";
       else ARGS+=("$arg"); fi
     done

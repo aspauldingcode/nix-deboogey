@@ -21,7 +21,9 @@ Deboogey Tart VMs for nix-darwin. CI publishes the images. You enable the ones t
 }
 ```
 
-`darwin-rebuild switch` installs Tart and clones each enabled prebuilt. The same switch works for `golden-gate`, `sequoia`, `sonoma`, and `monterey`.
+`darwin-rebuild switch` installs Tart from this flake and clones each enabled prebuilt. The same switch works for `golden-gate`, `sequoia`, `sonoma`, and `monterey`.
+
+`nix run github:aspauldingcode/nix-deboogey#ventura` opens that VM. Tart is already in the app. `--headless` skips the window.
 
 Guide: [https://aspauldingcode.github.io/nix-deboogey/](https://aspauldingcode.github.io/nix-deboogey/)
 

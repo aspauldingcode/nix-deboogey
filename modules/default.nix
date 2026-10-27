@@ -2,6 +2,8 @@
 
 let
   versions = import ../versions.nix;
+  tart = import ../nix/tart.nix { inherit pkgs; };
+  tartBin = "${tart}/bin/tart";
   cfg = config.nix-deboogey.vms;
   enabled = lib.filter (name: cfg.${name}.enable) versions;
   autoStarted = lib.filter (name: cfg.${name}.autoStart) enabled;
@@ -34,26 +36,20 @@ in
 
     system.requiresPrimaryUser = lib.mkIf (autoStarted != [ ]) [ "nix-deboogey.vms" ];
 
-    homebrew = {
-      enable = lib.mkDefault true;
-      taps = [ "openai/tools" "cirruslabs/cli" ];
-      brews = [ "openai/tools/tart" "cirruslabs/cli/sshpass" ];
-    };
+    environment.systemPackages = [ tart pkgs.sshpass ];
 
     environment.interactiveShellInit = ''
       tart-ssh() {
         local vm="''${1:?vm name}" ip
         shift
-        ip="$(tart ip "$vm" 2>/dev/null || true)"
+        ip="$(${tartBin} ip "$vm" 2>/dev/null || true)"
         [ -n "$ip" ] || { echo "nix-deboogey: no IP for $vm" >&2; return 1; }
-        sshpass -p admin ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR "admin@$ip" "$@"
+        ${pkgs.sshpass}/bin/sshpass -p admin ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR "admin@$ip" "$@"
       }
     '';
 
-    # Homebrew activation installs tart. This runs after it.
     system.activationScripts.postActivation.text = lib.mkAfter ''
-      TART="$(command -v tart || true)"
-      [ -x "$TART" ] || TART="/opt/homebrew/bin/tart"
+      TART="${tartBin}"
       [ -x "$TART" ] || { echo "nix-deboogey: tart is not installed" >&2; exit 1; }
       ${lib.concatMapStrings (name: ''
         vm="${name}-deboogey"
@@ -68,7 +64,7 @@ in
     launchd.user.agents = lib.listToAttrs (map (name: {
       name = "tart-${name}-deboogey";
       value = {
-        command = "/opt/homebrew/bin/tart run ${name}-deboogey --dir=home:${home}";
+        command = "${tartBin} run ${name}-deboogey --dir=home:${home}";
         serviceConfig = {
           RunAtLoad = true;
           KeepAlive = false;

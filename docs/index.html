@@ -150,9 +150,9 @@ tart-ssh tahoe-deboogey</code></pre>
 
     <section id="use">
       <h2>Run one without nix-darwin</h2>
-      <p><code>nix run</code> pulls the same CI image, clones a temporary VM, and deletes it on exit. <code>--gui</code> shows a window. <code>--no-home</code> skips the home share. Tart must already be installed for this path; the module installs it for you.</p>
-      <pre><code>nix run github:aspauldingcode/nix-deboogey#tahoe -- --gui
-nix run github:aspauldingcode/nix-deboogey#ventura</code></pre>
+      <p><code>nix run</code> brings Tart with it, pulls the same CI image, clones a temporary VM, and deletes it on exit. The VM window opens by default. Pass <code>--headless</code> to skip the window, or <code>--no-home</code> to skip the home share.</p>
+      <pre><code>nix run github:aspauldingcode/nix-deboogey#ventura
+nix run github:aspauldingcode/nix-deboogey#tahoe -- --headless</code></pre>
     </section>
 
     <section id="prebuilts">
