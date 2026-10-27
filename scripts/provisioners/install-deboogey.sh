@@ -66,16 +66,16 @@ fi
 
 # Ultimate fallback if no asset URL could be dynamically determined
 if [ -z "$DOWNLOAD_URL" ]; then
-  DOWNLOAD_URL="https://github.com/theoderoy/Deboogey/releases/latest/download/Deboogey.zip"
+  DOWNLOAD_URL="https://github.com/theoderoy/Deboogey/releases/download/rel-7.2/Deboogey.aar"
   echo "Using default fallback URL: ${DOWNLOAD_URL}"
 fi
 
 echo "--> Downloading Deboogey from: ${DOWNLOAD_URL}"
 ARCHIVE_NAME=$(basename "${DOWNLOAD_URL%%\?*}")
 if ! curl -fSL --retry 3 -o "$ARCHIVE_NAME" "$DOWNLOAD_URL"; then
-  echo "Primary download failed. Attempting DMG fallback..."
-  ARCHIVE_NAME="Deboogey.dmg"
-  curl -fSL --retry 3 -o "$ARCHIVE_NAME" "https://github.com/theoderoy/Deboogey/releases/latest/download/Deboogey.dmg" || {
+  echo "Primary download failed. Attempting release archive fallback..."
+  ARCHIVE_NAME="Deboogey.aar"
+  curl -fSL --retry 3 -o "$ARCHIVE_NAME" "https://github.com/theoderoy/Deboogey/releases/download/rel-7.2/Deboogey.aar" || {
     echo "❌ FATAL: Could not download Deboogey archive from GitHub releases."
     exit 1
   }
@@ -85,7 +85,20 @@ fi
 echo "--> Extracting/installing ${ARCHIVE_NAME}..."
 sudo rm -rf /Applications/Deboogey.app
 
-if [[ "$ARCHIVE_NAME" =~ \.dmg$ ]]; then
+if [[ "$ARCHIVE_NAME" =~ \.aar$ ]]; then
+  echo "Extracting Apple Archive (.aar)..."
+  mkdir -p unarchived
+  aa extract -v -i "$ARCHIVE_NAME" -d unarchived
+  if [ -d "unarchived/Deboogey.app" ]; then
+    sudo cp -R "unarchived/Deboogey.app" /Applications/
+  else
+    APP_FIND=$(find unarchived -name "*.app" | head -n 1)
+    if [ -n "$APP_FIND" ]; then
+      sudo cp -R "$APP_FIND" /Applications/Deboogey.app
+    fi
+  fi
+  rm -rf unarchived
+elif [[ "$ARCHIVE_NAME" =~ \.dmg$ ]]; then
   MOUNT_DIR=$(mktemp -d /tmp/deboogey-mount-XXXXXX)
   hdiutil attach "$ARCHIVE_NAME" -mountpoint "$MOUNT_DIR" -nobrowse -quiet
   if [ -d "$MOUNT_DIR/Deboogey.app" ]; then
