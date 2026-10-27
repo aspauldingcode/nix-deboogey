@@ -44,5 +44,5 @@ jobs:
             echo "GitHub-hosted macOS runners cannot boot a macOS guest. This job needs a self-hosted Apple Silicon runner."
             exit 1
           fi
-          brew install cirruslabs/cli/tart hashicorp/tap/packer
+          brew install openai/tools/tart hashicorp/tap/packer
           ./scripts/create-prebuilt.sh "${{ matrix.version }}" --push

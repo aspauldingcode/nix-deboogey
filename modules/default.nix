@@ -36,8 +36,8 @@ in
 
     homebrew = {
       enable = lib.mkDefault true;
-      taps = [ "cirruslabs/cli" ];
-      brews = [ "cirruslabs/cli/tart" "cirruslabs/cli/sshpass" ];
+      taps = [ "openai/tools" "cirruslabs/cli" ];
+      brews = [ "openai/tools/tart" "cirruslabs/cli/sshpass" ];
     };
 
     environment.interactiveShellInit = ''

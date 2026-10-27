@@ -65,6 +65,12 @@ grep -q 'ghcr.io/aspauldingcode/nix-deboogey/macos-${VERSION}-deboogey' "$ROOT/s
   && pass "publisher image" || fail "publisher image drifted"
 grep -q 'create-prebuilt.sh' "$ROOT/.github/workflows/build-tart-vms.yml" \
   && pass "publish workflow calls create-prebuilt.sh" || fail "publish workflow does not call create-prebuilt.sh"
+grep -q 'openai/tools/tart' "$ROOT/modules/default.nix" \
+  && pass "module installs openai/tools/tart" || fail "module is not on openai/tools/tart"
+grep -q 'version = ">= 1.21.0"' "$ROOT/packer/template.pkr.hcl" \
+  && pass "Packer Tart plugin is >= 1.21.0" || fail "Packer Tart plugin constraint is stale"
+! grep -q 'cirruslabs/cli/tart' "$ROOT/modules/default.nix" "$ROOT/apps/ephemeral.nix" "$ROOT/.github/workflows/build-tart-vms.yml" \
+  && pass "no stale cirruslabs/cli/tart pin" || fail "cirruslabs/cli/tart is still referenced"
 for ver in "${VERSIONS[@]}"; do
   grep -q "$ver" "$ROOT/.github/workflows/build-tart-vms.yml" && pass "publish matrix ${ver}" || fail "publish matrix missing ${ver}"
   grep -q "$ver" "$ROOT/scripts/create-prebuilt.sh" && pass "publisher knows ${ver}" || fail "publisher missing ${ver}"

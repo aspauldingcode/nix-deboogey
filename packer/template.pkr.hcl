@@ -1,7 +1,7 @@
 packer {
   required_plugins {
     tart = {
-      version = ">= 1.13.0"
+      version = ">= 1.21.0"
       source  = "github.com/cirruslabs/tart"
     }
   }

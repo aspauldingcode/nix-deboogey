@@ -15,7 +15,7 @@ let
     elif [ -x "/usr/local/bin/tart" ]; then
       TART="/usr/local/bin/tart"
     else
-      echo "Error: Tart CLI not found. Install via 'brew install cirruslabs/cli/tart'." >&2
+      echo "Error: Tart CLI not found. Install via 'brew install openai/tools/tart'." >&2
       exit 1
     fi
 
