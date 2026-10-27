@@ -22,7 +22,9 @@ packer build -var "version=$VERSION" -var "pre_26=$PRE_26" "$ROOT/packer/templat
 
 if [ "$DO_PUSH" = "--push" ]; then
   if [ -n "${GITHUB_TOKEN:-}" ]; then
-    echo "$GITHUB_TOKEN" | tart login ghcr.io -u "${GITHUB_ACTOR:-aspauldingcode}" --password-stdin
+    export TART_REGISTRY_HOSTNAME=ghcr.io
+    export TART_REGISTRY_USERNAME="${GITHUB_ACTOR:-aspauldingcode}"
+    export TART_REGISTRY_PASSWORD="$GITHUB_TOKEN"
   fi
   echo "==> Pushing ${TARGET}..."
   tart push "macos-${VERSION}-deboogey" "${TARGET}:latest"

@@ -1,6 +1,6 @@
 # nix-deboogey
 
-Deboogey Tart VMs for nix-darwin. CI publishes the images. You enable the ones to install.
+Deboogey Tart VMs for nix-darwin. A self-hosted Apple Silicon runner publishes the images. You enable the ones to install.
 
 ```nix
 {

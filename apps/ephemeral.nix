@@ -15,7 +15,10 @@ let
     trap '"$TART" stop "$VM" 2>/dev/null || true; "$TART" delete "$VM" 2>/dev/null || true' EXIT INT TERM
 
     echo "==> Preparing Deboogey VM: $VM (${image})..."
-    "$TART" pull "${image}"
+    if ! "$TART" pull "${image}"; then
+      echo "nix-deboogey: ${image} is not in GitHub Packages." >&2
+      exit 1
+    fi
     "$TART" clone "${image}" "$VM"
     "$TART" set "$VM" --cpu 4 --memory 8192 --disk-size 50 2>/dev/null || true
 
