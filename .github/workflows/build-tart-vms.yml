@@ -23,29 +23,20 @@ permissions:
 jobs:
   build-and-publish:
     name: Build & Push (${{ matrix.version }})
-    if: ${{ inputs.target_version == 'all' || inputs.target_version == matrix.version }}
     runs-on: ${{ inputs.runner }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - version: golden-gate
-            pre_26: false
-          - version: tahoe
-            pre_26: false
-          - version: sequoia
-            pre_26: true
-          - version: sonoma
-            pre_26: true
-          - version: ventura
-            pre_26: true
-          - version: monterey
-            pre_26: true
+        version: [golden-gate, tahoe, sequoia, sonoma, ventura, monterey]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Require a hypervisor Tart can use
+      - name: Build and publish
+        if: ${{ inputs.target_version == 'all' || inputs.target_version == matrix.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
         run: |
           support="$(sysctl -n kern.hv_support 2>/dev/null || echo 0)"
           if [ "$support" != "1" ]; then
@@ -53,12 +44,5 @@ jobs:
             echo "Use a self-hosted Apple Silicon Mac, or run ./scripts/create-prebuilt.sh <version> --push locally."
             exit 1
           fi
-
-      - name: Install Tooling
-        run: brew install cirruslabs/cli/tart hashicorp/tap/packer
-
-      - name: Build and publish
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
-        run: ./scripts/create-prebuilt.sh "${{ matrix.version }}" --push
+          brew install cirruslabs/cli/tart hashicorp/tap/packer
+          ./scripts/create-prebuilt.sh "${{ matrix.version }}" --push
