@@ -112,14 +112,21 @@ for ver in "${VERSIONS[@]}"; do
     report_fail "[$ver] Missing check-version-gate.sh provisioner"
   fi
 
-  # 3. Deboogey provisioner
+  # 3. Full SIP disablement provisioner
+  if grep -q "disable-sip.sh" "$PKR_FILE"; then
+    report_pass "[$ver] Includes disable-sip.sh for full SIP disablement"
+  else
+    report_fail "[$ver] Missing disable-sip.sh provisioner"
+  fi
+
+  # 4. Deboogey provisioner
   if grep -q "install-deboogey.sh" "$PKR_FILE"; then
     report_pass "[$ver] Includes install-deboogey.sh provisioner"
   else
     report_fail "[$ver] Missing install-deboogey.sh provisioner"
   fi
 
-  # 4. Default pre_26 partition
+  # 5. Default pre_26 partition
   EXP_P26="${EXPECTED_PRE26[$ver]}"
   if grep -q "default[[:space:]]*=[[:space:]]*${EXP_P26}" "$PKR_FILE"; then
     report_pass "[$ver] pre_26 default correctly set to ${EXP_P26}"

@@ -12,15 +12,15 @@ Images are built from Cirrus Labs `-vanilla` base images, published as public OC
 
 | macOS Codename | Version Family | Base Vanilla OCI Image | Tweak Loader | SIP & Security Constraints |
 | :--- | :--- | :--- | :--- | :--- |
-| **Golden Gate** | ≥ 26 *(runtime verified)* | `ghcr.io/cirruslabs/macos-golden-gate-vanilla:latest` | Plugin Playground | `csrutil enable --without debug` *(native arm64e)* |
-| **Tahoe** | 26 | `ghcr.io/cirruslabs/macos-tahoe-vanilla:latest` | Plugin Playground | `csrutil enable --without debug` *(native arm64e)* |
-| **Sequoia** | 15 | `ghcr.io/cirruslabs/macos-sequoia-vanilla:latest` | Ammonia 1.5 | Full SIP disable + `nvram boot-args=-arm64e_preview_abi` |
-| **Sonoma** | 14 | `ghcr.io/cirruslabs/macos-sonoma-vanilla:latest` | Ammonia 1.5 | Full SIP disable + `nvram boot-args=-arm64e_preview_abi` |
-| **Ventura** | 13 | `ghcr.io/cirruslabs/macos-ventura-vanilla:latest` | Ammonia 1.5 | Full SIP disable + `nvram boot-args=-arm64e_preview_abi` |
-| **Monterey** | 12 | `ghcr.io/cirruslabs/macos-monterey-vanilla:latest` | Ammonia 1.5 | Full SIP disable + `nvram boot-args=-arm64e_preview_abi` |
+| **Golden Gate** | ≥ 26 *(runtime verified)* | `ghcr.io/cirruslabs/macos-golden-gate-vanilla:latest` | Plugin Playground | **Full SIP disable** + `nvram boot-args=-arm64e_preview_abi` |
+| **Tahoe** | 26 | `ghcr.io/cirruslabs/macos-tahoe-vanilla:latest` | Plugin Playground | **Full SIP disable** + `nvram boot-args=-arm64e_preview_abi` |
+| **Sequoia** | 15 | `ghcr.io/cirruslabs/macos-sequoia-vanilla:latest` | Ammonia 1.5 | **Full SIP disable** + `nvram boot-args=-arm64e_preview_abi` |
+| **Sonoma** | 14 | `ghcr.io/cirruslabs/macos-sonoma-vanilla:latest` | Ammonia 1.5 | **Full SIP disable** + `nvram boot-args=-arm64e_preview_abi` |
+| **Ventura** | 13 | `ghcr.io/cirruslabs/macos-ventura-vanilla:latest` | Ammonia 1.5 | **Full SIP disable** + `nvram boot-args=-arm64e_preview_abi` |
+| **Monterey** | 12 | `ghcr.io/cirruslabs/macos-monterey-vanilla:latest` | Ammonia 1.5 | **Full SIP disable** + `nvram boot-args=-arm64e_preview_abi` |
 
 > [!WARNING]
-> **Guest vs. Host Security Isolation**: All SIP adjustments (`csrutil disable` or `csrutil enable --without debug`) and NVRAM boot arguments (`-arm64e_preview_abi`) are applied **exclusively inside the guest Tart VM**. Your macOS host system security and SIP remain 100% untouched.
+> **Guest vs. Host Security Isolation**: Full SIP disablement (`csrutil disable`) and NVRAM boot arguments (`-arm64e_preview_abi`) are applied **exclusively inside the guest Tart VM**. Your macOS host system security and SIP remain 100% untouched.
 
 ---
 

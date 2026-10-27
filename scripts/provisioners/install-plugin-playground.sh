@@ -8,13 +8,17 @@ echo "=========================================================="
 echo " Starting Plugin Playground Installation (macOS >= 26)"
 echo "=========================================================="
 
-# 1. Partial SIP disable for debugging (arm64e fangs tracer runs natively)
-echo "--> Applying partial SIP disable (enable --without debug)..."
-if sudo csrutil enable --without debug 2>/dev/null; then
-  echo "SIP adjusted: debugging allowed without full SIP disable."
+# 1. Full SIP disablement and boot-args
+echo "--> Applying full SIP disable (csrutil disable)..."
+if sudo csrutil disable 2>/dev/null; then
+  echo "✅ SIP disabled fully."
 else
-  echo "Notice: csrutil returned non-zero; continuing provisioner flow."
+  echo "Notice: Live 'csrutil disable' restricted. Attempting maximum loosening..."
+  sudo csrutil enable --without debug --without nvram --without fs --without kext 2>/dev/null || true
 fi
+
+echo "--> Setting nvram boot-args to -arm64e_preview_abi..."
+sudo nvram boot-args="-arm64e_preview_abi" 2>/dev/null || true
 
 # 2. Check if a pre-built PKG URL was supplied via environment
 PLUGIN_PLAYGROUND_PKG_URL="${PLUGIN_PLAYGROUND_PKG_URL:-}"

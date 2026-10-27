@@ -48,7 +48,12 @@ build {
     script = "${path.root}/../../scripts/provisioners/check-version-gate.sh"
   }
 
-  # Step 2: Shared Deboogey + Xcode CLT installation
+  # Step 2: Full SIP disablement & boot-args configuration across all VMs
+  provisioner "shell" {
+    script = "${path.root}/../../scripts/provisioners/disable-sip.sh"
+  }
+
+  # Step 3: Shared Deboogey + Xcode CLT installation
   provisioner "shell" {
     script = "${path.root}/../../scripts/provisioners/install-deboogey.sh"
   }

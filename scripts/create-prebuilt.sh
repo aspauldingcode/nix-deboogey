@@ -85,6 +85,7 @@ else
 
   sleep 20
   tart exec "$VM_NAME" EXPECTED_PRE_26="$PRE_26" MACOS_CODENAME="$VERSION" bash -s < "$SCRIPT_DIR/provisioners/check-version-gate.sh"
+  tart exec "$VM_NAME" bash -s < "$SCRIPT_DIR/provisioners/disable-sip.sh"
   tart exec "$VM_NAME" bash -s < "$SCRIPT_DIR/provisioners/install-deboogey.sh"
 
   if [ "$PRE_26" = "true" ]; then
