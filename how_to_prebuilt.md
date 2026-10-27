@@ -3,7 +3,7 @@ we must make prebuilts for nix-deboogey project to function properly.
 we will push to aspauldingcode's container registry on github.
 
 we will use tart to create the prebuilts initially. 
-we must document how we did it into ./docs/prebuilts.md
+we must document how we did it into ./notes/prebuilts.md
 
 we must pull then clone all prebuilts from tart, with xcode installed, every major OS of macos.
 Then, we must run them and install the following software:

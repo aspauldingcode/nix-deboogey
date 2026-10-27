@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nix-deboogey</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --heading: #f0f6fc;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --code: #0b0e14;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+    header { margin-bottom: 2rem; }
+    h1 {
+      margin: 0 0 0.4rem;
+      font-size: 2.4rem;
+      color: var(--heading);
+      letter-spacing: -0.03em;
+    }
+    .lead { margin: 0; color: var(--muted); font-size: 1.15rem; }
+    nav { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1.25rem 0 0; }
+    nav a, .button {
+      display: inline-block;
+      padding: 0.45rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--accent);
+      text-decoration: none;
+      background: #21262d;
+      font-weight: 600;
+      font-size: 0.92rem;
+    }
+    .button {
+      background: var(--accent);
+      color: #0d1117;
+      border-color: transparent;
+    }
+    nav a:hover, .button:hover { filter: brightness(1.08); }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.35rem 1.4rem;
+      margin: 1rem 0;
+    }
+    h2 { margin: 0 0 0.75rem; color: var(--heading); font-size: 1.35rem; }
+    h3 { margin: 1.2rem 0 0.4rem; color: var(--heading); font-size: 1.05rem; }
+    p { margin: 0.5rem 0; }
+    a { color: var(--accent); }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--accent); font-size: 0.92em; }
+    pre {
+      margin: 0.8rem 0;
+      padding: 0.9rem 1rem;
+      overflow-x: auto;
+      background: var(--code);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: #e6edf3;
+    }
+    pre code { color: inherit; }
+    ol, ul { margin: 0.4rem 0 0.4rem 1.2rem; padding: 0; }
+    li { margin: 0.25rem 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.92rem; }
+    th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { color: var(--heading); }
+    .note { color: var(--muted); font-size: 0.92rem; }
+    footer { margin-top: 2rem; color: var(--muted); font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>nix-deboogey</h1>
+      <p class="lead">Declarative Tart VMs with Deboogey already installed. Pull a prebuilt, or let nix-darwin clone it for you.</p>
+      <nav>
+        <a href="#how">How it works</a>
+        <a href="#use">Use it</a>
+        <a href="#declare">Declare it</a>
+        <a href="#prebuilts">Prebuilts</a>
+        <a class="button" href="https://github.com/aspauldingcode/nix-deboogey/packages">View All Prebuilts</a>
+      </nav>
+    </header>
+
+    <section id="how">
+      <h2>How it works</h2>
+      <ol>
+        <li>Packer clones a Cirrus Labs <code>macos-&lt;name&gt;-vanilla</code> image.</li>
+        <li>Inside that guest it checks the macOS major version, disables SIP, installs Deboogey, then installs a tweak loader: Ammonia on Monterey through Sequoia, Plugin Playground on Tahoe and Golden Gate.</li>
+        <li>The finished VM is pushed to GitHub Packages as <code>ghcr.io/aspauldingcode/nix-deboogey/macos-&lt;name&gt;-deboogey:latest</code>.</li>
+        <li>You either <code>nix run</code> a throwaway clone, or list the name in <code>nix-deboogey.tart.vms</code> so nix-darwin pulls and clones it on <code>darwin-rebuild switch</code>.</li>
+      </ol>
+      <p class="note">SIP and the <code>-arm64e_preview_abi</code> boot arg are applied in the guest. The host Mac is left alone. The guest login is <code>admin</code> / <code>admin</code>. These VMs run on Apple Silicon.</p>
+    </section>
+
+    <section id="use">
+      <h2>Use it</h2>
+      <p>Each command pulls the image, clones a temporary VM, and deletes that clone on exit. Add <code>--gui</code> for a window. Add <code>--no-home</code> to skip sharing your home directory over VirtioFS.</p>
+      <pre><code>nix run github:aspauldingcode/nix-deboogey#tahoe -- --gui
+nix run github:aspauldingcode/nix-deboogey#ventura
+nix run github:aspauldingcode/nix-deboogey#sequoia
+nix run github:aspauldingcode/nix-deboogey            # Sequoia</code></pre>
+      <p>The app names are <code>golden-gate</code>, <code>tahoe</code>, <code>sequoia</code>, <code>sonoma</code>, <code>ventura</code>, and <code>monterey</code>. <code>ephemeral-tahoe</code> is the same app as <code>tahoe</code>.</p>
+      <p>Tart has to be on the host. The nix-darwin module installs it from the Cirrus Homebrew tap. For a one-off run, install it yourself:</p>
+      <pre><code>brew install cirruslabs/cli/tart</code></pre>
+    </section>
+
+    <section id="declare">
+      <h2>Declare it</h2>
+      <p>Add the flake and the module. A string is enough. The image name drops a leading <code>macos-</code>, and the local Tart VM is named <code>&lt;name&gt;-deboogey</code>.</p>
+      <pre><code>{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nix-darwin.url = "github:LnL7/nix-darwin";
+    nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+    nix-deboogey.url = "github:aspauldingcode/nix-deboogey";
+  };
+
+  outputs = { self, nixpkgs, nix-darwin, nix-deboogey, ... }: {
+    darwinConfigurations."my-mac" = nix-darwin.lib.darwinSystem {
+      system = "aarch64-darwin";
+      modules = [
+        nix-deboogey.darwinModules.default
+        {
+          nix-deboogey.tart.vms = [
+            "sequoia"
+            "tahoe"
+            {
+              name = "ventura";
+              cpu = 6;
+              memory = 12;   # gigabytes
+              diskSize = 80; # gigabytes
+              headless = true;
+              autoStart = true;
+            }
+          ];
+        }
+      ];
+    };
+  };
+}</code></pre>
+      <p><code>darwin-rebuild switch</code> pulls the image when <code>autoPull</code> is true (the default), clones it if the local name is missing, and sets CPU, memory, and disk. <code>autoStart</code> defaults to false, so the VM stays stopped until you run it:</p>
+      <pre><code>tart run sequoia-deboogey
+tart-ssh sequoia-deboogey
+tart-ssh sequoia-deboogey uname -a</code></pre>
+      <p><code>tart-ssh</code> and <code>tart-scp</code> are shell functions from the module. They use the guest <code>admin</code> password. If the declared name is <code>macos-sequoia</code>, the local VM is <code>macos-sequoia-deboogey</code> and the image is still the Sequoia prebuilt.</p>
+
+      <h3>What you can set</h3>
+      <table>
+        <thead>
+          <tr><th>Option</th><th>Default</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>tart.enable</code></td><td><code>true</code></td><td>Install Tart and manage the VM list.</td></tr>
+          <tr><td><code>tart.autoPull</code></td><td><code>true</code></td><td>Pull each image during activation.</td></tr>
+          <tr><td><code>tart.defaults.cpu</code></td><td><code>4</code></td><td>Default CPU count.</td></tr>
+          <tr><td><code>tart.defaults.memory</code></td><td><code>8</code></td><td>Default memory in gigabytes.</td></tr>
+          <tr><td><code>tart.defaults.diskSize</code></td><td><code>50</code></td><td>Default disk in gigabytes. Activation only grows a disk.</td></tr>
+          <tr><td><code>vms.*.source</code></td><td>the GHCR prebuilt</td><td>OCI image to clone.</td></tr>
+          <tr><td><code>vms.*.net</code></td><td><code>shared</code></td><td><code>shared</code>, <code>bridged</code>, <code>host-only</code>, or <code>softnet</code>.</td></tr>
+          <tr><td><code>vms.*.enableHomeShare</code></td><td><code>true</code></td><td>Share the host home directory as <code>home</code>.</td></tr>
+          <tr><td><code>vms.*.headless</code></td><td><code>false</code></td><td>Pass <code>--no-graphics</code> when the launchd agent starts the VM.</td></tr>
+          <tr><td><code>vms.*.autoStart</code></td><td><code>false</code></td><td>Start the VM at login via <code>launchd</code>.</td></tr>
+          <tr><td><code>orchard.enable</code></td><td><code>false</code></td><td>Also run an Orchard user agent.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="prebuilts">
+      <h2>Prebuilts</h2>
+      <p><a class="button" href="https://github.com/aspauldingcode/nix-deboogey/packages">View All Prebuilts</a></p>
+      <table>
+        <thead>
+          <tr><th>nix run</th><th>macOS</th><th>Loader</th><th>Image</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>#golden-gate</code></td><td>Golden Gate</td><td>Plugin Playground</td><td><code>ghcr.io/aspauldingcode/nix-deboogey/macos-golden-gate-deboogey:latest</code></td></tr>
+          <tr><td><code>#tahoe</code></td><td>26 Tahoe</td><td>Plugin Playground</td><td><code>ghcr.io/aspauldingcode/nix-deboogey/macos-tahoe-deboogey:latest</code></td></tr>
+          <tr><td><code>#sequoia</code></td><td>15 Sequoia</td><td>Ammonia</td><td><code>ghcr.io/aspauldingcode/nix-deboogey/macos-sequoia-deboogey:latest</code></td></tr>
+          <tr><td><code>#sonoma</code></td><td>14 Sonoma</td><td>Ammonia</td><td><code>ghcr.io/aspauldingcode/nix-deboogey/macos-sonoma-deboogey:latest</code></td></tr>
+          <tr><td><code>#ventura</code></td><td>13 Ventura</td><td>Ammonia</td><td><code>ghcr.io/aspauldingcode/nix-deboogey/macos-ventura-deboogey:latest</code></td></tr>
+          <tr><td><code>#monterey</code></td><td>12 Monterey</td><td>Ammonia</td><td><code>ghcr.io/aspauldingcode/nix-deboogey/macos-monterey-deboogey:latest</code></td></tr>
+        </tbody>
+      </table>
+      <p class="note">An Apple Silicon Mac builds these with <code>./scripts/create-prebuilt.sh &lt;name&gt; --push</code>. GitHub-hosted runners cannot boot Tart, so the publish workflow is manual and expects a self-hosted Mac.</p>
+    </section>
+
+    <footer>
+      <a href="https://github.com/aspauldingcode/nix-deboogey">aspauldingcode/nix-deboogey</a>
+    </footer>
+  </div>
+</body>
+</html>

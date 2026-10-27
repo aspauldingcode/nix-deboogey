@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: Flake apps and prebuilt contract
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/determinate-nix-action@v3.24.1
+
+      - name: Shell syntax
+        run: find scripts -name '*.sh' -print0 | xargs -0 bash -n
+
+      - name: Asset and image-name checks
+        run: ./scripts/verify-prebuilt.sh
+
+      - name: Build every nix run app
+        run: |
+          nix build --no-link \
+            .#default \
+            .#golden-gate .#tahoe .#sequoia .#sonoma .#ventura .#monterey \
+            .#ephemeral-golden-gate .#ephemeral-tahoe .#ephemeral-sequoia \
+            .#ephemeral-sonoma .#ephemeral-ventura .#ephemeral-monterey
