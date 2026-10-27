@@ -2,13 +2,19 @@
 
 version:
 let
-  image = "ghcr.io/aspauldingcode/nix-deboogey/macos-${version}-deboogey:latest";
+  # Strip "macos-" prefix if passed as e.g. "macos-tahoe"
+  cleanVersion = builtins.replaceStrings [ "macos-" ] [ "" ] version;
+  image = "ghcr.io/aspauldingcode/nix-deboogey/macos-${cleanVersion}-deboogey:latest";
+
   script = pkgs.writeShellScriptBin "ephemeral-${version}" ''
     set -euo pipefail
 
-    VERSION="${version}"
+    VERSION="${cleanVersion}"
     IMAGE="${image}"
     TMP_VM="ephemeral-''${VERSION}-$$"
+    DEFAULT_DISK_SIZE=50
+    DEFAULT_CPU=4
+    DEFAULT_MEMORY=8192
 
     # Prefer PATH tart (e.g. from Homebrew) or fallback to nixpkgs tart
     if command -v tart >/dev/null 2>&1; then
@@ -41,9 +47,31 @@ let
     echo "--> Cloning ephemeral instance..."
     "$TART_CMD" clone "''${IMAGE}" "''${TMP_VM}"
 
-    echo "--> Starting ''${TMP_VM}..."
+    echo "--> Configuring default ephemeral resources (CPU: ''${DEFAULT_CPU}, RAM: ''${DEFAULT_MEMORY}MB, Disk: ''${DEFAULT_DISK_SIZE}GB)..."
+    "$TART_CMD" set "''${TMP_VM}" --cpu "''${DEFAULT_CPU}" --memory "''${DEFAULT_MEMORY}" 2>/dev/null || true
+    "$TART_CMD" set "''${TMP_VM}" --disk-size "''${DEFAULT_DISK_SIZE}" 2>/dev/null || true
+
+    echo "--> Starting ''${TMP_VM} (ephemeral, headless by default)..."
+    # Ephemeral runner runs headless by default unless --gui is specified in arguments
     if [ $# -gt 0 ]; then
-      exec "$TART_CMD" run "''${TMP_VM}" "$@"
+      RUN_ARGS=()
+      for arg in "$@"; do
+        if [ "$arg" = "--gui" ]; then
+          # Skip adding --no-graphics if --gui was requested
+          true
+        else
+          RUN_ARGS+=("$arg")
+        fi
+      done
+
+      # Check if user explicitly asked for GUI or --no-graphics
+      if [[ " $* " =~ " --gui " ]]; then
+        exec "$TART_CMD" run "''${TMP_VM}" "''${RUN_ARGS[@]}"
+      elif [[ " $* " =~ " --no-graphics " ]]; then
+        exec "$TART_CMD" run "''${TMP_VM}" "''${RUN_ARGS[@]}"
+      else
+        exec "$TART_CMD" run "''${TMP_VM}" --no-graphics "''${RUN_ARGS[@]}"
+      fi
     else
       exec "$TART_CMD" run "''${TMP_VM}" --no-graphics
     fi

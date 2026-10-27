@@ -106,6 +106,42 @@ If you manage your configuration from `/etc/nix-darwin/.dotfiles` or have multip
 
 ---
 
+## Declarative Tart Integration Layer (Defaults-On)
+
+Every capability from the Tart ecosystem is configurable with sensible defaults enabled out of the box. See the full reference in [docs/integrations.md](file:///Users/8amps/nix-deboogey/docs/integrations.md).
+
+### Highlights:
+- **Shared Folders (VirtioFS)**: Automatically shares the host home directory (`enableHomeShare = true`) at `/Volumes/My Shared Files/home`. Additional folders can be added via `defaults.sharedFolders`.
+- **Networking Modes**: Defaults to `"shared"` (Virtualization NAT). Supports `"bridged"` (`bridgedInterface = "en0"`), `"host-only"`, and `"softnet"` with port forwarding rules.
+- **Orchard Orchestration**: Enabled by default in local dev mode (`orchard.mode = "dev"`), managed under `launchd.user.agents.orchard-dev`. Includes `orchard-ssh` and `orchard-vnc` aliases.
+- **SSH Helpers**: Automatically provides `tart-ssh <vm>` and `tart-scp` shell functions using `sshpass` and dynamic IP discovery via `tart ip`.
+- **CI Scaffolds**: Pre-configures Cirrus CLI and Packer (`cirrusCli = true`, `packer = true`). Generates templates for GitHub Actions, GitLab, and Buildkite when enabled.
+- **Disk Sizing Guard**: Cloned VMs default to 50 GB (`defaults.diskSize = 50`) and are automatically and idempotently resized on activation.
+
+```nix
+nix-deboogey.tart = {
+  enable = true;
+  defaults = {
+    cpu = 6;
+    memory = 12;
+    diskSize = 60;
+    net = "shared";
+    enableHomeShare = true;
+  };
+  vms = [
+    "macos-sequoia"
+    {
+      name = "macos-tahoe";
+      cpu = 8;
+      memory = 16;
+      autoStart = false;
+    }
+  ];
+};
+```
+
+---
+
 ## Building Locally with HashiCorp Packer
 
 Ensure you have HashiCorp Packer and the Tart CLI installed:
